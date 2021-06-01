@@ -1,0 +1,28 @@
+{-# STDLIB_VERSION 3 #-}
+{-# CONTENT_TYPE DAPP #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+@Callable(i)
+func purchase(item: String) = {
+    let pmt = i.payment.extract() 
+    # we have all the details about the attached Tokens (e.g. asset Id).
+    if (pmt.assetId.isDefined()) then throw("Can use Waves only at the moment")
+    else{
+        let customerAddress = i.caller.bytes.toBase58String()
+        # we have the customerAddress
+        let price = match getInteger(this, "item_" + item + "_coupon_price") {
+            case a: Int => a 
+            case _ => 0
+          }
+          if (pmt.amount < price) then throw("Purchase amount cannot be less than item price")
+          # The price is in the dApp data storage
+          else if (pmt.amount > price) then throw("Purchase amount cannot be higher than item price")
+          else {
+              WriteSet([
+                  # write some data 
+                  DataEntry("status:purchase_item_" + item + "_customer" + customerAddress, "confirmed")
+                  DataEntry("price:purchase_item_" + item + "_customer" + customerAddress, price)
+                  # At what price this users bought the items
+              ])
+          }
+    }
+}
